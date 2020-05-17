@@ -1,0 +1,83 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.require_version ">= 2.2.7"
+
+Vagrant.configure("2") do |config|
+
+   config.vm.synced_folder ".", "/vagrant", disabled: true
+
+   config.ssh.insert_key = false
+
+   config.vm.define "go-code" do |code|
+      code.vm.box = "launchquickly/focal-desktop64"
+      code.vm.box_version = "0.0.4"
+
+      code.vm.hostname = "go-code"
+
+      code.vm.network :private_network, ip: "10.205.0.12"
+
+      code.vm.provider "virtualbox" do |vb|
+         vb.gui = true
+         vb.memory = 4096
+         vb.cpus = 2
+         vb.customize ["modifyvm", :id, "--vram", "128"]
+      end
+
+      code.vm.provision "shell", inline: <<-SHELL
+         snap install code --classic
+      SHELL
+
+      # Run as unpriviliged user to configure for 'vagrant' user
+      code.vm.provision "shell", privileged: false, inline: <<-SHELL
+         code --install-extension ms-vscode-remote.remote-ssh
+      SHELL
+
+      # Make private keys of instances that vscode will connect to available
+      code.vm.provision "file", source: "./keys/id_rsa_golang", destination: "~/.ssh/id_rsa_golang"
+
+      code.vm.provision "file", source: "./config", destination: "~/.ssh/config"
+
+      code.vm.provision "shell", privileged: false, inline: <<-SHELL
+         chmod 400 ~/.ssh/id_rsa_golang
+         chmod 400 ~/.ssh/config
+      SHELL
+   end
+
+   config.vm.define "go-server" do |server|
+      server.vm.box = "launchquickly/focal64"
+      server.vm.box_version = "0.0.3"
+
+      server.vm.hostname = "go-server"
+
+      server.vm.network :private_network, ip: "10.205.0.22"
+
+      server.ssh.private_key_path = ['~/.vagrant.d/insecure_private_key', './keys/id_rsa_golang']
+
+      server.vm.provision "file", source: "./keys/id_rsa_golang.pub", destination: "~/.ssh/authorized_keys"
+
+      server.vm.provision "shell", inline: <<-SHELL
+         golang_dist=go1.14.3.linux-amd64.tar.gz
+         expected_sha256=1c39eac4ae95781b066c144c58e45d6859652247f7515f0d2cba7be7d57d2226
+
+         wget https://dl.google.com/go/$golang_dist
+
+         if sha256sum $golang_dist | grep -q $expected_sha256 
+         then
+            echo "golang archive checksum matches expected"
+         else
+            echo "golang archive checksum does not match expected - exiting"
+            exit 1
+         fi
+
+         tar -C /usr/local -xzf $golang_dist
+         rm $golang_dist
+      SHELL
+
+      # Run as unpriviliged user to configure for 'vagrant' user
+      server.vm.provision "shell", privileged: false, inline: <<-SHELL
+         echo "" >> ~/.profile
+         echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.profile
+      SHELL
+   end
+end

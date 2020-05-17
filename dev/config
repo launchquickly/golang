@@ -1,0 +1,10 @@
+Host golang.scot.local
+  HostName 10.205.0.22
+  User vagrant
+  Port 22
+  UserKnownHostsFile /dev/null
+  StrictHostKeyChecking no
+  PasswordAuthentication no
+  IdentityFile /home/vagrant/.ssh/id_rsa_golang
+  IdentitiesOnly yes
+  LogLevel FATAL
