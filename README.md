@@ -1,2 +1,2 @@
 # golang
-Project to collect and document golang related examples and practices
+Project to collect and document golang related examples, practices and tools
