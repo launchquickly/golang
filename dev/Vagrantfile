@@ -78,6 +78,11 @@ Vagrant.configure("2") do |config|
       server.vm.provision "shell", privileged: false, inline: <<-SHELL
          echo "" >> ~/.profile
          echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.profile
+
+         git clone https://github.com/launchquickly/golang.git
+         cd golang
+         # change repository remote access from https to ssh
+         git remote set-url origin git@github.com:launchquickly/golang.git
       SHELL
    end
 end
